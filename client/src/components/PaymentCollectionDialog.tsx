@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +18,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Printer, Mail, MessageSquare } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface PaymentCollectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  tenantId: string;
   tenantName: string;
   currentBalance: number;
 }
@@ -28,25 +32,59 @@ interface PaymentCollectionDialogProps {
 export default function PaymentCollectionDialog({
   open,
   onOpenChange,
+  tenantId,
   tenantName,
   currentBalance,
 }: PaymentCollectionDialogProps) {
+  const { toast } = useToast();
   const [amount, setAmount] = useState("");
   const [discount, setDiscount] = useState("");
   const [paymentMode, setPaymentMode] = useState("cash");
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [remarks, setRemarks] = useState("");
 
   const calculatedBalance = currentBalance - (parseFloat(amount) || 0) + (parseFloat(discount) || 0);
 
+  const createPaymentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/payments", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      toast({
+        title: "Payment recorded",
+        description: "Payment has been successfully recorded",
+      });
+      onOpenChange(false);
+      setAmount("");
+      setDiscount("");
+      setRemarks("");
+    },
+  });
+
   const handleSubmit = () => {
-    console.log("Payment collected:", {
-      amount,
-      discount,
+    const parsedAmount = parseFloat(amount);
+    const parsedDiscount = discount ? parseFloat(discount) : 0;
+    
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid payment amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createPaymentMutation.mutate({
+      tenantId,
+      amount: parsedAmount.toString(),
+      discount: parsedDiscount.toString(),
       paymentMode,
-      remarks,
-      newBalance: calculatedBalance,
+      paymentDate: new Date(paymentDate).toISOString(),
+      remarks: remarks || null,
     });
-    onOpenChange(false);
   };
 
   return (
@@ -115,7 +153,8 @@ export default function PaymentCollectionDialog({
             <Input
               id="date"
               type="date"
-              defaultValue={new Date().toISOString().split("T")[0]}
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
               data-testid="input-payment-date"
             />
           </div>
@@ -132,8 +171,13 @@ export default function PaymentCollectionDialog({
           </div>
 
           <div className="space-y-2">
-            <Button className="w-full" onClick={handleSubmit} data-testid="button-save-payment">
-              Save Payment
+            <Button 
+              className="w-full" 
+              onClick={handleSubmit} 
+              data-testid="button-save-payment"
+              disabled={createPaymentMutation.isPending || !amount}
+            >
+              {createPaymentMutation.isPending ? "Saving..." : "Save Payment"}
             </Button>
             
             <div className="grid grid-cols-3 gap-2">
