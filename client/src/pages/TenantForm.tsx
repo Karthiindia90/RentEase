@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
+import { useCurrency } from "@/hooks/use-currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,23 +36,37 @@ interface Plan {
 
 const tenantFormSchema = z.object({
   billingName: z.string().min(1, "Name is required"),
-  phoneNumber: z.string().min(10, "Valid phone number required"),
-  email: z.string().email("Valid email required"),
-  rentalAddress: z.string().min(1, "Address is required"),
+  phoneNumber: z.string().optional(),
+  email: z.string().email("Valid email required").or(z.literal("")).optional(),
+  rentalAddress: z.string().optional(),
   securityDeposit: z.string().min(1, "Security deposit is required"),
   planId: z.string().min(1, "Plan is required"),
   billingType: z.enum(["prepaid", "postpaid"]),
   billingCycle: z.string().min(1, "Billing cycle is required"),
+  customBillingDay: z.string().optional(),
   electricityRate: z.string().optional(),
   waterRate: z.string().optional(),
   remarks: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.billingCycle === "custom") {
+      return data.customBillingDay && data.customBillingDay.trim() !== "";
+    }
+    return true;
+  },
+  {
+    message: "Custom billing day is required when custom cycle is selected",
+    path: ["customBillingDay"],
+  }
+);
 
 type TenantFormValues = z.infer<typeof tenantFormSchema>;
 
 export default function TenantForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { symbol } = useCurrency();
+  const [showCustomDay, setShowCustomDay] = useState(false);
   
   const { data: plans = [] } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
@@ -59,8 +74,16 @@ export default function TenantForm() {
 
   const createTenantMutation = useMutation({
     mutationFn: async (data: TenantFormValues) => {
+      const billingCycle = data.billingCycle === "custom" 
+        ? data.customBillingDay 
+        : data.billingCycle;
+      
       return apiRequest("POST", "/api/tenants", {
         ...data,
+        billingCycle,
+        phoneNumber: data.phoneNumber || null,
+        email: data.email || null,
+        rentalAddress: data.rentalAddress || null,
         electricityRate: data.electricityRate || "0",
         waterRate: data.waterRate || "0",
       });
@@ -86,6 +109,7 @@ export default function TenantForm() {
       planId: "",
       billingType: "postpaid",
       billingCycle: "end_of_month",
+      customBillingDay: "",
       electricityRate: "",
       waterRate: "",
       remarks: "",
@@ -134,7 +158,7 @@ export default function TenantForm() {
               name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel>Phone Number (Optional)</FormLabel>
                   <FormControl>
                     <Input {...field} type="tel" data-testid="input-phone" />
                   </FormControl>
@@ -148,7 +172,7 @@ export default function TenantForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email (Optional)</FormLabel>
                   <FormControl>
                     <Input {...field} type="email" data-testid="input-email" />
                   </FormControl>
@@ -162,7 +186,7 @@ export default function TenantForm() {
               name="rentalAddress"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address</FormLabel>
+                  <FormLabel>Address (Optional)</FormLabel>
                   <FormControl>
                     <Textarea {...field} data-testid="input-address" />
                   </FormControl>
@@ -200,7 +224,7 @@ export default function TenantForm() {
                     <SelectContent>
                       {plans.map((plan) => (
                         <SelectItem key={plan.id} value={plan.id}>
-                          {plan.name} - ${plan.rate}/month
+                          {plan.name} - {symbol}{plan.rate}/month
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -238,7 +262,13 @@ export default function TenantForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Billing Cycle</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setShowCustomDay(value === "custom");
+                    }} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger data-testid="select-billing-cycle">
                         <SelectValue />
@@ -246,17 +276,37 @@ export default function TenantForm() {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="end_of_month">End of Month</SelectItem>
-                      {[1, 5, 10, 15, 20, 25].map((day) => (
-                        <SelectItem key={day} value={day.toString()}>
-                          Day {day} of each month
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="1">1st Day of Month</SelectItem>
+                      <SelectItem value="custom">Custom Day</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {showCustomDay && (
+              <FormField
+                control={form.control}
+                name="customBillingDay"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Billing Day (1-31)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        min="1" 
+                        max="31" 
+                        placeholder="Enter day of month"
+                        data-testid="input-custom-day" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
