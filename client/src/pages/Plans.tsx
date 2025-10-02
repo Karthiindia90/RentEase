@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import PlanCard from "@/components/PlanCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -11,26 +12,47 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const mockPlans = [
-  { id: "1", name: "Basic Plan", rate: 500 },
-  { id: "2", name: "Standard Plan", rate: 700 },
-  { id: "3", name: "Premium Plan", rate: 800 },
-  { id: "4", name: "Deluxe Plan", rate: 1200 },
-];
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Plan } from "@shared/schema";
 
 export default function Plans() {
   const [open, setOpen] = useState(false);
   const [planName, setPlanName] = useState("");
   const [planRate, setPlanRate] = useState("");
 
+  const { data: plans = [], isLoading } = useQuery<Plan[]>({
+    queryKey: ["/api/plans"],
+  });
+
+  const createPlanMutation = useMutation({
+    mutationFn: async (data: { name: string; rate: string }) => {
+      return apiRequest("POST", "/api/plans", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      setOpen(false);
+      setPlanName("");
+      setPlanRate("");
+    },
+  });
+
+  const deletePlanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/plans/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Create plan:", { name: planName, rate: planRate });
-    setOpen(false);
-    setPlanName("");
-    setPlanRate("");
+    createPlanMutation.mutate({ name: planName, rate: planRate });
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-auto pb-20">
@@ -72,8 +94,13 @@ export default function Plans() {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" data-testid="button-save-plan">
-                  Create Plan
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  data-testid="button-save-plan"
+                  disabled={createPlanMutation.isPending}
+                >
+                  {createPlanMutation.isPending ? "Creating..." : "Create Plan"}
                 </Button>
               </form>
             </DialogContent>
@@ -82,13 +109,21 @@ export default function Plans() {
       </header>
 
       <div className="flex-1 p-4 space-y-3">
-        {mockPlans.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            {...plan}
-            onEdit={() => console.log(`Edit plan ${plan.id}`)}
-          />
-        ))}
+        {plans.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No plans yet. Create one to get started!
+          </div>
+        ) : (
+          plans.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              id={plan.id}
+              name={plan.name}
+              rate={parseFloat(plan.rate)}
+              onEdit={() => console.log(`Edit plan ${plan.id}`)}
+            />
+          ))
+        )}
       </div>
     </div>
   );

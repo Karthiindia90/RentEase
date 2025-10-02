@@ -1,8 +1,18 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
 import { format } from "date-fns";
+
+interface PendingReport {
+  total: number;
+  tenants: Array<{
+    tenantId: string;
+    tenantName: string;
+    pending: number;
+  }>;
+}
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState("today");
@@ -14,13 +24,21 @@ export default function Reports() {
     { id: "custom", label: "Custom" },
   ];
 
-  const todayCollection = 3200;
-  const monthCollection = 18500;
-  const pendingTenants = [
-    { name: "Sarah Johnson", amount: 1200 },
-    { name: "David Wilson", amount: 950 },
-    { name: "Michael Brown", amount: 850 },
-  ];
+  const { data: todayReport } = useQuery<{ total: number; count: number }>({
+    queryKey: ["/api/reports/today"],
+  });
+
+  const { data: monthReport } = useQuery<{ total: number; count: number }>({
+    queryKey: ["/api/reports/month"],
+  });
+
+  const { data: pendingReport } = useQuery<PendingReport>({
+    queryKey: ["/api/reports/pending"],
+  });
+
+  const todayCollection = todayReport?.total || 0;
+  const monthCollection = monthReport?.total || 0;
+  const pendingTenants = pendingReport?.tenants || [];
 
   return (
     <div className="flex flex-col h-full overflow-auto pb-20">
@@ -60,8 +78,10 @@ export default function Reports() {
             <DollarSign className="w-5 h-5 text-success" />
             <h2 className="text-lg font-semibold">Today's Collection</h2>
           </div>
-          <p className="text-3xl font-bold text-success">${todayCollection.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground mt-1">4 payments received</p>
+          <p className="text-3xl font-bold text-success">${todayCollection.toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {todayReport?.count || 0} payments received
+          </p>
         </Card>
 
         <Card className="p-4">
@@ -69,10 +89,10 @@ export default function Reports() {
             <TrendingUp className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold">Monthly Collection</h2>
           </div>
-          <p className="text-3xl font-bold text-primary">${monthCollection.toLocaleString()}</p>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="text-sm text-success">↑ 12% from last month</div>
-          </div>
+          <p className="text-3xl font-bold text-primary">${monthCollection.toFixed(2)}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {monthReport?.count || 0} payments this month
+          </p>
         </Card>
 
         <Card className="p-4">
@@ -80,25 +100,31 @@ export default function Reports() {
             <Users className="w-5 h-5 text-warning" />
             <h2 className="text-lg font-semibold">Pending from Tenants</h2>
           </div>
-          <div className="space-y-3">
-            {pendingTenants.map((tenant, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-2 border-b border-border last:border-0"
-              >
-                <span className="font-medium">{tenant.name}</span>
-                <span className="text-warning font-semibold">${tenant.amount}</span>
+          {pendingTenants.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pending payments</p>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {pendingTenants.map((tenant, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                  >
+                    <span className="font-medium">{tenant.tenantName}</span>
+                    <span className="text-warning font-semibold">${tenant.pending.toFixed(2)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="mt-4 pt-3 border-t border-border">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold">Total Pending</span>
-              <span className="text-xl font-bold text-warning">
-                ${pendingTenants.reduce((sum, t) => sum + t.amount, 0)}
-              </span>
-            </div>
-          </div>
+              <div className="mt-4 pt-3 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Total Pending</span>
+                  <span className="text-xl font-bold text-warning">
+                    ${pendingReport?.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
         </Card>
 
         <Button variant="default" className="w-full" data-testid="button-export-report">

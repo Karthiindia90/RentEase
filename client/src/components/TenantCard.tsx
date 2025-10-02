@@ -110,6 +110,7 @@ export default function TenantCard({
       <PaymentCollectionDialog
         open={showPaymentDialog}
         onOpenChange={setShowPaymentDialog}
+        tenantId={id}
         tenantName={name}
         currentBalance={balance}
       />

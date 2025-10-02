@@ -1,12 +1,38 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import MetricCard from "@/components/MetricCard";
 import CurrencySelector from "@/components/CurrencySelector";
 import { Users, DollarSign, AlertCircle, Clock, Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+interface TenantWithStatus {
+  id: string;
+  billingName: string;
+  status: "paid" | "overdue" | "pending";
+  balance: number;
+}
+
 export default function Dashboard() {
+  const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<string | null>(null);
+
+  const { data: tenants = [] } = useQuery<TenantWithStatus[]>({
+    queryKey: ["/api/tenants"],
+  });
+
+  const { data: todayReport } = useQuery<{ total: number; count: number }>({
+    queryKey: ["/api/reports/today"],
+  });
+
+  const { data: monthReport } = useQuery<{ total: number; count: number }>({
+    queryKey: ["/api/reports/month"],
+  });
+
+  const paidCount = tenants.filter(t => t.status === "paid").length;
+  const unpaidCount = tenants.filter(t => t.status === "overdue").length;
+  const pendingAmount = tenants.reduce((sum, t) => sum + (t.balance > 0 ? t.balance : 0), 0);
 
   return (
     <div className="flex flex-col h-full overflow-auto pb-20">
@@ -21,42 +47,46 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-3">
           <MetricCard
             title="Total Tenants"
-            value="24"
+            value={tenants.length}
             icon={Users}
             color="default"
             onClick={() => {
               console.log('Filter: all tenants');
               setFilter('all');
+              setLocation('/tenants');
             }}
           />
           <MetricCard
             title="Paid This Month"
-            value="18"
+            value={paidCount}
             icon={DollarSign}
             color="success"
             onClick={() => {
               console.log('Filter: paid');
               setFilter('paid');
+              setLocation('/tenants');
             }}
           />
           <MetricCard
             title="Unpaid"
-            value="4"
+            value={unpaidCount}
             icon={AlertCircle}
             color="error"
             onClick={() => {
               console.log('Filter: unpaid');
               setFilter('unpaid');
+              setLocation('/tenants');
             }}
           />
           <MetricCard
             title="Pending Amount"
-            value="$2,450"
+            value={`$${pendingAmount.toFixed(2)}`}
             icon={Clock}
             color="warning"
             onClick={() => {
               console.log('Filter: pending');
               setFilter('pending');
+              setLocation('/reports');
             }}
           />
         </div>
@@ -67,7 +97,7 @@ export default function Dashboard() {
             <Button
               variant="default"
               className="h-auto py-3 flex flex-col gap-1"
-              onClick={() => console.log('Collect payment')}
+              onClick={() => setLocation('/tenants')}
               data-testid="button-collect-payment"
             >
               <DollarSign className="w-5 h-5" />
@@ -76,7 +106,7 @@ export default function Dashboard() {
             <Button
               variant="default"
               className="h-auto py-3 flex flex-col gap-1"
-              onClick={() => console.log('Add tenant')}
+              onClick={() => setLocation('/tenants/new')}
               data-testid="button-add-tenant"
             >
               <Plus className="w-5 h-5" />
@@ -85,38 +115,35 @@ export default function Dashboard() {
             <Button
               variant="secondary"
               className="h-auto py-3 flex flex-col gap-1 col-span-2"
-              onClick={() => console.log('Generate report')}
+              onClick={() => setLocation('/reports')}
               data-testid="button-generate-report"
             >
               <Receipt className="w-5 h-5" />
-              <span className="text-sm">Generate Report</span>
+              <span className="text-sm">View Reports</span>
             </Button>
           </div>
         </Card>
 
         <Card className="p-4">
-          <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <div>
-                <p className="font-medium">John Smith</p>
-                <p className="text-sm text-muted-foreground">Payment received - $800</p>
-              </div>
-              <p className="text-xs text-muted-foreground">2h ago</p>
+          <h2 className="text-lg font-semibold mb-3">Today's Summary</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Collections</p>
+              <p className="text-2xl font-bold text-success">
+                ${todayReport?.total?.toFixed(2) || "0.00"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {todayReport?.count || 0} payments
+              </p>
             </div>
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <div>
-                <p className="font-medium">Sarah Johnson</p>
-                <p className="text-sm text-muted-foreground">Payment overdue</p>
-              </div>
-              <p className="text-xs text-muted-foreground">1d ago</p>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-medium">Michael Brown</p>
-                <p className="text-sm text-muted-foreground">New tenant added</p>
-              </div>
-              <p className="text-xs text-muted-foreground">3d ago</p>
+            <div>
+              <p className="text-sm text-muted-foreground">This Month</p>
+              <p className="text-2xl font-bold text-primary">
+                ${monthReport?.total?.toFixed(2) || "0.00"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {monthReport?.count || 0} payments
+              </p>
             </div>
           </div>
         </Card>

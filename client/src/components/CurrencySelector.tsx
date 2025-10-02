@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DollarSign } from "lucide-react";
 import {
   Select,
@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 const currencies = [
   { code: "USD", symbol: "$", name: "US Dollar" },
@@ -23,13 +24,36 @@ interface CurrencySelectorProps {
   onChange?: (value: string) => void;
 }
 
-export default function CurrencySelector({ value = "USD", onChange }: CurrencySelectorProps) {
-  const [currency, setCurrency] = useState(value);
+export default function CurrencySelector({ value, onChange }: CurrencySelectorProps) {
+  const { data: settingsData } = useQuery<{ currency: string }>({
+    queryKey: ["/api/settings/currency"],
+  });
+
+  const updateCurrencyMutation = useMutation({
+    mutationFn: async (currency: string) => {
+      return apiRequest("POST", "/api/settings/currency", { currency });
+    },
+    onMutate: async (newCurrency) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/settings/currency"] });
+      const previousData = queryClient.getQueryData(["/api/settings/currency"]);
+      queryClient.setQueryData(["/api/settings/currency"], { currency: newCurrency });
+      return { previousData };
+    },
+    onError: (err, newCurrency, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(["/api/settings/currency"], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/currency"] });
+    },
+  });
+
+  const currency = value || settingsData?.currency || "USD";
 
   const handleChange = (newValue: string) => {
-    setCurrency(newValue);
+    updateCurrencyMutation.mutate(newValue);
     onChange?.(newValue);
-    console.log("Currency changed to:", newValue);
   };
 
   return (
