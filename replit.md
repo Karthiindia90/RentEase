@@ -62,7 +62,7 @@ A comprehensive mobile-first rent management application for property admins to 
 **Tenants**
 - GET /api/tenants - List tenants (with calculated status)
 - POST /api/tenants - Create tenant (auto-generates first bill)
-- PUT /api/tenants/:id - Update tenant
+- PATCH /api/tenants/:id - Update tenant (used for isActive toggle)
 - DELETE /api/tenants/:id - Delete tenant
 
 **Bills**
@@ -159,7 +159,14 @@ A comprehensive mobile-first rent management application for property admins to 
 - Optimistic updates for currency changes
 
 ## Recent Changes (Latest First)
-- **Tenant Form Enhancements** (Current):
+- **Bug Fixes & Feature Enhancements** (October 2, 2025):
+  - **Reports Cache Fix**: Fixed today's collection not updating after payment by targeting specific report query keys (`/api/reports/today`, `/api/reports/month`, `/api/reports/pending`) in cache invalidation
+  - **Tenant Active/Inactive Toggle**: Added Switch component in TenantDetail page to toggle tenant's `isActive` status
+    - Switch disabled during mutation (isPending) to prevent repeated clicks
+    - Badge updates to show "Active" (green) or "Inactive" (muted)
+    - PATCH `/api/tenants/:id` endpoint used for updates
+    - Cache invalidation for both tenant detail and tenants list
+- **Tenant Form Enhancements**:
   - Made phone, email, and address optional fields in tenant creation
   - Fixed plan dropdown to show dynamic currency symbol (not hardcoded $)
   - Updated billing cycle options: End of Month, 1st Day of Month, Custom Day (1-31)
