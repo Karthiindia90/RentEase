@@ -159,6 +159,12 @@ A comprehensive mobile-first rent management application for property admins to 
 - Optimistic updates for currency changes
 
 ## Recent Changes (Latest First)
+- **Quick Actions Implementation** (October 2, 2025):
+  - **Send Bill**: Sends latest bill to tenant via messaging system with "bill" attachment type
+  - **Send Receipt**: Sends latest payment receipt to tenant via messaging system with "receipt" attachment type  
+  - **Renew Tenant**: Generates new bill for tenant using POST `/api/bills/generate` endpoint
+  - All quick actions have proper error handling, disabled states during pending, and success/error toasts
+  - Message cache invalidation ensures Messages page reflects sent bills/receipts immediately
 - **Bug Fixes & Feature Enhancements** (October 2, 2025):
   - **Reports Cache Fix**: Fixed today's collection not updating after payment by targeting specific report query keys (`/api/reports/today`, `/api/reports/month`, `/api/reports/pending`) in cache invalidation
   - **Tenant Active/Inactive Toggle**: Added Switch component in TenantDetail page to toggle tenant's `isActive` status
