@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import PaymentCollectionDialog from "@/components/PaymentCollectionDialog";
 import { useCurrency } from "@/hooks/use-currency";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Phone,
@@ -44,6 +48,7 @@ interface Tenant {
   electricityRate?: string;
   waterRate?: string;
   remarks?: string;
+  isActive: boolean;
 }
 
 interface Payment {
@@ -59,6 +64,7 @@ export default function TenantDetail() {
   const [, setLocation] = useLocation();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const { symbol } = useCurrency();
+  const { toast } = useToast();
 
   const { data: tenant, isLoading: tenantLoading } = useQuery<Tenant>({
     queryKey: ["/api/tenants", id],
@@ -68,11 +74,27 @@ export default function TenantDetail() {
     queryKey: ["/api/payments/tenant", id],
   });
 
+  const updateTenantMutation = useMutation({
+    mutationFn: async (data: { isActive: boolean }) => {
+      return apiRequest("PATCH", `/api/tenants/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      toast({
+        title: "Tenant updated",
+        description: "Tenant status has been updated successfully",
+      });
+    },
+  });
+
   if (tenantLoading || !tenant) {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
-  const isActive = tenant.balance === 0;
+  const handleToggleActive = (checked: boolean) => {
+    updateTenantMutation.mutate({ isActive: checked });
+  };
 
   return (
     <>
@@ -97,9 +119,23 @@ export default function TenantDetail() {
               <div className="flex-1">
                 <h2 className="text-lg font-semibold mb-1">{tenant.billingName}</h2>
                 <p className="text-sm text-muted-foreground mb-2">{tenant.rentalAddress}</p>
-                <Badge className={isActive ? "bg-success text-white" : "bg-muted"}>
-                  {isActive ? "Active" : "Pending"}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge className={tenant.isActive ? "bg-success text-white" : "bg-muted"}>
+                    {tenant.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      id="tenant-active" 
+                      checked={tenant.isActive}
+                      onCheckedChange={handleToggleActive}
+                      disabled={updateTenantMutation.isPending}
+                      data-testid="switch-active"
+                    />
+                    <Label htmlFor="tenant-active" className="text-sm cursor-pointer">
+                      {tenant.isActive ? "Active" : "Inactive"}
+                    </Label>
+                  </div>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button size="icon" variant="ghost" data-testid="button-call">
