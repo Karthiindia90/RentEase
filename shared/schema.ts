@@ -78,7 +78,9 @@ export const settings = pgTable("settings", {
 export const insertPlanSchema = createInsertSchema(plans).omit({ id: true, createdAt: true });
 export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, createdAt: true });
 export const insertBillSchema = createInsertSchema(bills).omit({ id: true, createdAt: true });
-export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true }).extend({
+  paymentDate: z.coerce.date(),
+});
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 
 // Types

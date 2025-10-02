@@ -52,6 +52,7 @@ export default function PaymentCollectionDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/tenant", tenantId] });
       queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
       toast({
         title: "Payment recorded",
@@ -61,6 +62,7 @@ export default function PaymentCollectionDialog({
       setAmount("");
       setDiscount("");
       setRemarks("");
+      setPaymentDate(new Date().toISOString().split("T")[0]);
     },
   });
 
