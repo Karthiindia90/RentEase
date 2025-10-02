@@ -15,9 +15,9 @@ export const tenants = pgTable("tenants", {
   billingName: text("billing_name").notNull(),
   password: text("password"),
   securityDeposit: decimal("security_deposit", { precision: 10, scale: 2 }).notNull(),
-  rentalAddress: text("rental_address").notNull(),
-  phoneNumber: text("phone_number").notNull(),
-  email: text("email").notNull(),
+  rentalAddress: text("rental_address"),
+  phoneNumber: text("phone_number"),
+  email: text("email"),
   isActive: boolean("is_active").default(true).notNull(),
   planId: varchar("plan_id").references(() => plans.id),
   billingCycle: text("billing_cycle").notNull(), // "end_of_month" or number of days
