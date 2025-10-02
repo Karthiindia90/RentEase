@@ -11,6 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -20,6 +30,8 @@ export default function Plans() {
   const [open, setOpen] = useState(false);
   const [planName, setPlanName] = useState("");
   const [planRate, setPlanRate] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
   const { symbol } = useCurrency();
 
   const { data: plans = [], isLoading } = useQuery<Plan[]>({
@@ -44,8 +56,21 @@ export default function Plans() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/plans"] });
+      setDeleteDialogOpen(false);
+      setPlanToDelete(null);
     },
   });
+
+  const handleDeleteClick = (planId: string) => {
+    setPlanToDelete(planId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (planToDelete) {
+      deletePlanMutation.mutate(planToDelete);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,11 +148,32 @@ export default function Plans() {
               name={plan.name}
               rate={parseFloat(plan.rate)}
               onEdit={() => console.log(`Edit plan ${plan.id}`)}
-              onDelete={() => deletePlanMutation.mutate(plan.id)}
+              onDelete={() => handleDeleteClick(plan.id)}
             />
           ))
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-delete-plan">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Plan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this plan? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              data-testid="button-confirm-delete"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

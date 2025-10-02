@@ -12,14 +12,14 @@ A comprehensive mobile-first rent management application for property admins to 
 - **Database**: In-memory storage (MemStorage) - can be migrated to PostgreSQL later
 
 ### Key Features
-1. **Plan Management**: Create rental plans with custom rates
+1. **Plan Management**: Create and delete rental plans with custom rates
 2. **Tenant Management**: Full CRUD with document uploads, balance tracking, and custom billing
 3. **Automatic Billing**: Bills generated based on billing cycles (end-of-month or custom days)
 4. **Payment Collection**: Multiple payment modes with discounts and signature capture
 5. **Utility Tracking**: Electricity and water charge calculations
 6. **Messaging System**: SMS/Email notifications with payment links and receipts
 7. **Reporting**: Today's collection, monthly collection, and pending amounts
-8. **Currency Support**: Multi-currency with persistent selection
+8. **Currency Support**: Dynamic multi-currency system with real-time symbol updates across entire app
 
 ### Database Schema (shared/schema.ts)
 
@@ -101,10 +101,15 @@ A comprehensive mobile-first rent management application for property admins to 
 
 **Components** (client/src/components/)
 - TenantCard.tsx - Tenant card with status indicator and quick payment
-- PaymentCollectionDialog.tsx - Payment collection form
-- CurrencySelector.tsx - Global currency selector
+- PaymentCollectionDialog.tsx - Payment collection form with dynamic currency
+- PaymentHistoryItem.tsx - Payment history display with dynamic currency
+- PlanCard.tsx - Plan card with delete functionality
+- CurrencySelector.tsx - Global currency selector with icon display
 - BottomNav.tsx - Mobile navigation
 - ui/ - shadcn/ui components
+
+**Hooks** (client/src/hooks/)
+- use-currency.tsx - Centralized currency hook providing symbol, code, and available currencies
 
 ### Design Approach
 - **Material Design 3** inspired mobile-first UI
@@ -134,17 +139,43 @@ A comprehensive mobile-first rent management application for property admins to 
    - Reduces tenant balance
 5. Cache invalidated for tenants, payments, reports
 
+### Currency System
+1. **Centralized Hook**: `useCurrency()` hook provides single source of truth for currency data
+2. **Dynamic Display**: All currency symbols update instantly when user changes currency selection
+3. **Components Using Currency**:
+   - Dashboard (stats, collections)
+   - Plans (plan cards, form labels)
+   - TenantCard (balance display)
+   - TenantDetail (all monetary values, payment history)
+   - Reports (collections, pending amounts)
+   - PaymentCollectionDialog (all labels and balances)
+   - PaymentHistoryItem (payment amounts)
+4. **Backend Persistence**: Currency selection stored in settings table
+5. **Supported Currencies**: USD, EUR, GBP, INR, JPY, CNY with proper symbols
+
 ### User Preferences
 - Mobile-first design with bottom navigation
 - Material Design 3 color scheme
 - Real data from backend (no mock data in production)
 - Optimistic updates for currency changes
 
-## Recent Changes
-- Fixed payment collection data type issues (amount/discount as numbers, date as ISO string)
-- Added optimistic updates for currency selector
-- Connected all pages to backend APIs
-- Removed all mock data from frontend
+## Recent Changes (Latest First)
+- **Currency System Enhancement** (Current):
+  - Created centralized `useCurrency()` hook for global currency state
+  - Updated all components to dynamically display currency symbols
+  - Currency selector now shows currency-specific icons
+  - All monetary values react instantly to currency changes
+- **Plan Management** (Current):
+  - Added delete functionality to Plans page with trash icon
+  - AlertDialog confirmation before plan deletion (cancel/confirm options)
+  - Proper cache invalidation after deletion
+  - Delete flow: Click trash → Confirmation appears → Cancel keeps plan / Confirm deletes plan
+- **Payment Collection Fixes**:
+  - Fixed payment data type issues (amount/discount as numbers, date as ISO string)
+  - Added optimistic updates for currency selector
+- **Full Backend Integration**:
+  - Connected all pages to backend APIs
+  - Removed all mock data from frontend
 
 ## Development Notes
 - Using in-memory storage - data resets on server restart
