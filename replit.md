@@ -13,13 +13,14 @@ A comprehensive mobile-first rent management application for property admins to 
 
 ### Key Features
 1. **Plan Management**: Create and delete rental plans with custom rates
-2. **Tenant Management**: Full CRUD with document uploads, balance tracking, and custom billing
+2. **Tenant Management**: Full CRUD with document uploads, balance tracking, custom billing, and edit functionality
 3. **Automatic Billing**: Bills generated based on billing cycles (end-of-month or custom days)
 4. **Payment Collection**: Multiple payment modes with discounts and signature capture
-5. **Utility Tracking**: Electricity and water charge calculations
-6. **Messaging System**: SMS/Email notifications with payment links and receipts
-7. **Reporting**: Today's collection, monthly collection, and pending amounts
-8. **Currency Support**: Dynamic multi-currency system with real-time symbol updates across entire app
+5. **Payment Correction**: Delete wrong payments with automatic balance recalculation
+6. **Utility Tracking**: Electricity and water charge calculations
+7. **Messaging System**: SMS/Email notifications with payment links and receipts
+8. **Reporting**: Today's collection, monthly collection, and pending amounts
+9. **Currency Support**: Dynamic multi-currency system with real-time symbol updates across entire app
 
 ### Database Schema (shared/schema.ts)
 
@@ -61,8 +62,9 @@ A comprehensive mobile-first rent management application for property admins to 
 
 **Tenants**
 - GET /api/tenants - List tenants (with calculated status)
+- GET /api/tenants/:id - Get single tenant details
 - POST /api/tenants - Create tenant (auto-generates first bill)
-- PATCH /api/tenants/:id - Update tenant (used for isActive toggle)
+- PATCH /api/tenants/:id - Update tenant (used for edit and isActive toggle)
 - DELETE /api/tenants/:id - Delete tenant
 
 **Bills**
@@ -73,6 +75,7 @@ A comprehensive mobile-first rent management application for property admins to 
 **Payments**
 - GET /api/payments/tenant/:tenantId - Get payments for tenant
 - POST /api/payments - Create payment (updates bill status and tenant balance)
+- DELETE /api/payments/:id - Delete payment (recalculates tenant balance)
 
 **Messages**
 - GET /api/messages - All messages
@@ -94,7 +97,8 @@ A comprehensive mobile-first rent management application for property admins to 
 - Dashboard.tsx - Overview with stats and quick actions
 - Plans.tsx - Manage rental plans
 - TenantList.tsx - List tenants with filtering
-- TenantDetail.tsx - Individual tenant details and payment history
+- TenantDetail.tsx - Individual tenant details, payment history, and payment deletion
+- TenantForm.tsx - Create and edit tenants (dual mode)
 - Reports.tsx - Collection and pending reports
 - Messages.tsx - Messaging interface
 
@@ -159,6 +163,20 @@ A comprehensive mobile-first rent management application for property admins to 
 - Optimistic updates for currency changes
 
 ## Recent Changes (Latest First)
+- **Edit Tenant & Delete Payment Features** (October 2, 2025):
+  - **Edit Tenant**: Added dedicated edit route `/tenants/:id/edit` that reuses TenantForm component
+    - Edit button (icon) in TenantDetail page header
+    - Form automatically pre-fills with existing tenant data
+    - Uses PATCH `/api/tenants/:id` for updates
+    - Fixed infinite render loop by using useEffect with ref to track form population
+    - Redirects to tenant detail page after successful update
+  - **Delete Payment**: Added ability to delete incorrect payments
+    - DELETE `/api/payments/:id` endpoint with 404 handling for missing payments
+    - Trash icon button next to each payment in payment history
+    - Disabled state during deletion to prevent duplicate requests
+    - Comprehensive cache invalidation: payments, tenants, and all reports
+    - Success/error toasts for user feedback
+    - Tenant balance automatically recalculated
 - **Quick Actions Implementation** (October 2, 2025):
   - **Send Bill**: Sends latest bill to tenant via messaging system with "bill" attachment type
   - **Send Receipt**: Sends latest payment receipt to tenant via messaging system with "receipt" attachment type  
