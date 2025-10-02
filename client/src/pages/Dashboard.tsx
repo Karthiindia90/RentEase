@@ -1,5 +1,6 @@
 import { useState } from "react";
 import MetricCard from "@/components/MetricCard";
+import CurrencySelector from "@/components/CurrencySelector";
 import { Users, DollarSign, AlertCircle, Clock, Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +11,10 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-full overflow-auto pb-20">
       <header className="sticky top-0 bg-background border-b border-border z-10 px-4 py-3">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <CurrencySelector />
+        </div>
       </header>
 
       <div className="flex-1 p-4 space-y-4">

@@ -98,6 +98,8 @@ export default function TenantList() {
             key={tenant.id}
             {...tenant}
             onClick={() => console.log(`View tenant ${tenant.id}`)}
+            onPaymentCollect={() => console.log(`Collect payment for ${tenant.id}`)}
+            onViewHistory={() => console.log(`View history for ${tenant.id}`)}
           />
         ))}
       </div>
