@@ -13,13 +13,13 @@ A comprehensive mobile-first rent management application for property admins to 
 
 ### Key Features
 1. **Plan Management**: Create and delete rental plans with custom rates
-2. **Tenant Management**: Full CRUD with document uploads, balance tracking, custom billing, and edit functionality
+2. **Tenant Management**: Full CRUD with optional security deposit, document uploads, balance tracking, custom billing, and edit functionality
 3. **Automatic Billing**: Bills generated based on billing cycles (end-of-month or custom days)
 4. **Payment Collection**: Multiple payment modes with discounts and signature capture
 5. **Payment Correction**: Delete wrong payments with automatic balance recalculation
 6. **Utility Tracking**: Electricity and water charge calculations
 7. **Messaging System**: SMS/Email notifications with payment links and receipts
-8. **Reporting**: Today's collection, monthly collection, and pending amounts
+8. **Reporting**: Flexible date range filtering (Today, Week, Month, Custom) with collection summaries and pending amounts
 9. **Currency Support**: Dynamic multi-currency system with real-time symbol updates across entire app
 
 ### Database Schema (shared/schema.ts)
@@ -31,7 +31,7 @@ A comprehensive mobile-first rent management application for property admins to 
 
 **Tenants Table**
 - id, billingName (required), phoneNumber (optional), email (optional), rentalAddress (optional)
-- securityDeposit, planId
+- securityDeposit (optional), planId
 - billingType: "prepaid" | "postpaid"
 - billingCycle: "end_of_month" | "1" (1st day) | custom day (1-31)
 - electricityRate, waterCharges (for utility calculations)
@@ -84,7 +84,9 @@ A comprehensive mobile-first rent management application for property admins to 
 
 **Reports**
 - GET /api/reports/today - Today's collection summary
+- GET /api/reports/week - This week's collection summary
 - GET /api/reports/month - This month's collection summary
+- GET /api/reports/custom?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD - Custom date range collection
 - GET /api/reports/pending - Pending amounts by tenant
 
 **Settings**
@@ -163,6 +165,18 @@ A comprehensive mobile-first rent management application for property admins to 
 - Optimistic updates for currency changes
 
 ## Recent Changes (Latest First)
+- **Security Deposit Optional & Date Range Filtering** (October 2, 2025):
+  - **Security Deposit Optional**: Made security deposit field optional in tenant creation/editing
+    - Updated schema to allow null values for securityDeposit
+    - Updated form validation and UI to show "(Optional)" label
+    - Edit form gracefully handles null security deposit
+  - **Date Range Filtering in Reports**: Implemented working date range filters
+    - Added "This Week" filter with backend endpoint GET /api/reports/week
+    - Added "Custom" filter with date range picker (shadcn Calendar component)
+    - Backend endpoint GET /api/reports/custom accepts startDate and endDate query params
+    - Dynamic query switching based on selected date range
+    - Date range text updates to show selected period format
+    - Single "Collection" card displays data for selected range
 - **Edit Tenant & Delete Payment Features** (October 2, 2025):
   - **Edit Tenant**: Added dedicated edit route `/tenants/:id/edit` that reuses TenantForm component
     - Edit button (icon) in TenantDetail page header
