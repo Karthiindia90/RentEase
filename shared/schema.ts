@@ -14,7 +14,7 @@ export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   billingName: text("billing_name").notNull(),
   password: text("password"),
-  securityDeposit: decimal("security_deposit", { precision: 10, scale: 2 }).notNull(),
+  securityDeposit: decimal("security_deposit", { precision: 10, scale: 2 }),
   rentalAddress: text("rental_address"),
   phoneNumber: text("phone_number"),
   email: text("email"),

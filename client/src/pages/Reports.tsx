@@ -3,8 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek } from "date-fns";
 import { useCurrency } from "@/hooks/use-currency";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
 
 interface PendingReport {
   total: number;
@@ -17,6 +20,7 @@ interface PendingReport {
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState("today");
+  const [customDateRange, setCustomDateRange] = useState<DateRange | undefined>();
   const { symbol } = useCurrency();
 
   const dateRangeOptions = [
@@ -26,21 +30,50 @@ export default function Reports() {
     { id: "custom", label: "Custom" },
   ];
 
-  const { data: todayReport } = useQuery<{ total: number; count: number }>({
-    queryKey: ["/api/reports/today"],
-  });
+  // Determine the API endpoint based on selected date range
+  const getReportEndpoint = () => {
+    if (dateRange === "custom" && customDateRange?.from && customDateRange?.to) {
+      const startDate = format(customDateRange.from, "yyyy-MM-dd");
+      const endDate = format(customDateRange.to, "yyyy-MM-dd");
+      return `/api/reports/custom?startDate=${startDate}&endDate=${endDate}`;
+    }
+    return `/api/reports/${dateRange}`;
+  };
 
-  const { data: monthReport } = useQuery<{ total: number; count: number }>({
-    queryKey: ["/api/reports/month"],
+  const { data: report } = useQuery<{ total: number; count: number }>({
+    queryKey: [getReportEndpoint()],
+    enabled: dateRange !== "custom" || (customDateRange?.from !== undefined && customDateRange?.to !== undefined),
   });
 
   const { data: pendingReport } = useQuery<PendingReport>({
     queryKey: ["/api/reports/pending"],
   });
 
-  const todayCollection = todayReport?.total || 0;
-  const monthCollection = monthReport?.total || 0;
+  const collection = report?.total || 0;
+  const paymentCount = report?.count || 0;
   const pendingTenants = pendingReport?.tenants || [];
+
+  // Get display text for date range
+  const getDateRangeText = () => {
+    const now = new Date();
+    switch (dateRange) {
+      case "today":
+        return format(now, "MMMM d, yyyy");
+      case "week":
+        const weekStart = startOfWeek(now, { weekStartsOn: 0 });
+        const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+        return `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
+      case "month":
+        return format(now, "MMMM yyyy");
+      case "custom":
+        if (customDateRange?.from && customDateRange?.to) {
+          return `${format(customDateRange.from, "MMM d")} - ${format(customDateRange.to, "MMM d, yyyy")}`;
+        }
+        return "Select date range";
+      default:
+        return format(now, "MMMM d, yyyy");
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-auto pb-20">
@@ -61,7 +94,6 @@ export default function Reports() {
                 variant={dateRange === option.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => {
-                  console.log(`Filter by: ${option.id}`);
                   setDateRange(option.id);
                 }}
                 data-testid={`filter-${option.id}`}
@@ -70,30 +102,51 @@ export default function Reports() {
               </Button>
             ))}
           </div>
+          {dateRange === "custom" && (
+            <div className="mt-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full" data-testid="button-custom-date-picker">
+                    {customDateRange?.from ? (
+                      customDateRange.to ? (
+                        <>
+                          {format(customDateRange.from, "LLL dd, y")} -{" "}
+                          {format(customDateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(customDateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    initialFocus
+                    mode="range"
+                    defaultMonth={customDateRange?.from}
+                    selected={customDateRange}
+                    onSelect={setCustomDateRange}
+                    numberOfMonths={1}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
           <p className="text-sm text-muted-foreground mt-2">
-            {format(new Date(), "MMMM d, yyyy")}
+            {getDateRangeText()}
           </p>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="w-5 h-5 text-success" />
-            <h2 className="text-lg font-semibold">Today's Collection</h2>
+            <h2 className="text-lg font-semibold">Collection</h2>
           </div>
-          <p className="text-3xl font-bold text-success">{symbol}{todayCollection.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-success">{symbol}{collection.toFixed(2)}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {todayReport?.count || 0} payments received
-          </p>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Monthly Collection</h2>
-          </div>
-          <p className="text-3xl font-bold text-primary">{symbol}{monthCollection.toFixed(2)}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {monthReport?.count || 0} payments this month
+            {paymentCount} payments received
           </p>
         </Card>
 
