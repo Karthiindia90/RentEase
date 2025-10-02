@@ -6,6 +6,7 @@ import CurrencySelector from "@/components/CurrencySelector";
 import { Users, DollarSign, AlertCircle, Clock, Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TenantWithStatus {
   id: string;
@@ -17,6 +18,7 @@ interface TenantWithStatus {
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [filter, setFilter] = useState<string | null>(null);
+  const { symbol } = useCurrency();
 
   const { data: tenants = [] } = useQuery<TenantWithStatus[]>({
     queryKey: ["/api/tenants"],
@@ -80,7 +82,7 @@ export default function Dashboard() {
           />
           <MetricCard
             title="Pending Amount"
-            value={`$${pendingAmount.toFixed(2)}`}
+            value={`${symbol}${pendingAmount.toFixed(2)}`}
             icon={Clock}
             color="warning"
             onClick={() => {
@@ -130,7 +132,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm text-muted-foreground">Collections</p>
               <p className="text-2xl font-bold text-success">
-                ${todayReport?.total?.toFixed(2) || "0.00"}
+                {symbol}{todayReport?.total?.toFixed(2) || "0.00"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {todayReport?.count || 0} payments
@@ -139,7 +141,7 @@ export default function Dashboard() {
             <div>
               <p className="text-sm text-muted-foreground">This Month</p>
               <p className="text-2xl font-bold text-primary">
-                ${monthReport?.total?.toFixed(2) || "0.00"}
+                {symbol}{monthReport?.total?.toFixed(2) || "0.00"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {monthReport?.count || 0} payments

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
 import { format } from "date-fns";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface PendingReport {
   total: number;
@@ -16,6 +17,7 @@ interface PendingReport {
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState("today");
+  const { symbol } = useCurrency();
 
   const dateRangeOptions = [
     { id: "today", label: "Today" },
@@ -78,7 +80,7 @@ export default function Reports() {
             <DollarSign className="w-5 h-5 text-success" />
             <h2 className="text-lg font-semibold">Today's Collection</h2>
           </div>
-          <p className="text-3xl font-bold text-success">${todayCollection.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-success">{symbol}{todayCollection.toFixed(2)}</p>
           <p className="text-sm text-muted-foreground mt-1">
             {todayReport?.count || 0} payments received
           </p>
@@ -89,7 +91,7 @@ export default function Reports() {
             <TrendingUp className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold">Monthly Collection</h2>
           </div>
-          <p className="text-3xl font-bold text-primary">${monthCollection.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-primary">{symbol}{monthCollection.toFixed(2)}</p>
           <p className="text-sm text-muted-foreground mt-1">
             {monthReport?.count || 0} payments this month
           </p>
@@ -111,7 +113,7 @@ export default function Reports() {
                     className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
                     <span className="font-medium">{tenant.tenantName}</span>
-                    <span className="text-warning font-semibold">${tenant.pending.toFixed(2)}</span>
+                    <span className="text-warning font-semibold">{symbol}{tenant.pending.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -119,7 +121,7 @@ export default function Reports() {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">Total Pending</span>
                   <span className="text-xl font-bold text-warning">
-                    ${pendingReport?.total.toFixed(2)}
+                    {symbol}{pendingReport?.total.toFixed(2)}
                   </span>
                 </div>
               </div>
