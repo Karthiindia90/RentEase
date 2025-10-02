@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -62,23 +62,46 @@ const tenantFormSchema = z.object({
 
 type TenantFormValues = z.infer<typeof tenantFormSchema>;
 
+interface Tenant {
+  id: string;
+  billingName: string;
+  phoneNumber?: string;
+  email?: string;
+  rentalAddress?: string;
+  securityDeposit: string;
+  planId: string;
+  billingType: string;
+  billingCycle: string;
+  electricityRate?: string;
+  waterRate?: string;
+  remarks?: string;
+}
+
 export default function TenantForm() {
+  const { id } = useParams<{ id?: string }>();
+  const isEditing = !!id;
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { symbol } = useCurrency();
   const [showCustomDay, setShowCustomDay] = useState(false);
+  const hasPopulated = useRef(false);
   
   const { data: plans = [] } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
   });
 
-  const createTenantMutation = useMutation({
+  const { data: tenant, isLoading: tenantLoading } = useQuery<Tenant>({
+    queryKey: ["/api/tenants", id],
+    enabled: isEditing,
+  });
+
+  const saveTenantMutation = useMutation({
     mutationFn: async (data: TenantFormValues) => {
       const billingCycle = data.billingCycle === "custom" 
         ? data.customBillingDay 
         : data.billingCycle;
       
-      return apiRequest("POST", "/api/tenants", {
+      const payload = {
         ...data,
         billingCycle,
         phoneNumber: data.phoneNumber || null,
@@ -86,15 +109,25 @@ export default function TenantForm() {
         rentalAddress: data.rentalAddress || null,
         electricityRate: data.electricityRate || "0",
         waterRate: data.waterRate || "0",
-      });
+      };
+
+      if (isEditing) {
+        return apiRequest("PATCH", `/api/tenants/${id}`, payload);
+      }
+      return apiRequest("POST", "/api/tenants", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      if (isEditing) {
+        queryClient.invalidateQueries({ queryKey: ["/api/tenants", id] });
+      }
       toast({
-        title: "Tenant created",
-        description: "New tenant has been added successfully",
+        title: isEditing ? "Tenant updated" : "Tenant created",
+        description: isEditing 
+          ? "Tenant details have been updated successfully" 
+          : "New tenant has been added successfully",
       });
-      setLocation("/tenants");
+      setLocation(isEditing ? `/tenants/${id}` : "/tenants");
     },
   });
 
@@ -116,9 +149,38 @@ export default function TenantForm() {
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (isEditing && tenant && !hasPopulated.current) {
+      const isBillingCycleCustom = tenant.billingCycle !== "end_of_month" && tenant.billingCycle !== "1";
+      
+      form.reset({
+        billingName: tenant.billingName,
+        phoneNumber: tenant.phoneNumber || "",
+        email: tenant.email || "",
+        rentalAddress: tenant.rentalAddress || "",
+        securityDeposit: tenant.securityDeposit,
+        planId: tenant.planId,
+        billingType: tenant.billingType as "prepaid" | "postpaid",
+        billingCycle: isBillingCycleCustom ? "custom" : tenant.billingCycle,
+        customBillingDay: isBillingCycleCustom ? tenant.billingCycle : "",
+        electricityRate: tenant.electricityRate || "",
+        waterRate: tenant.waterRate || "",
+        remarks: tenant.remarks || "",
+      });
+      
+      setShowCustomDay(isBillingCycleCustom);
+      hasPopulated.current = true;
+    }
+  }, [isEditing, tenant, form]);
+
   const onSubmit = (data: TenantFormValues) => {
-    createTenantMutation.mutate(data);
+    saveTenantMutation.mutate(data);
   };
+
+  if (isEditing && tenantLoading) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-auto pb-20">
@@ -132,7 +194,7 @@ export default function TenantForm() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-semibold">Add Tenant</h1>
+          <h1 className="text-xl font-semibold">{isEditing ? "Edit Tenant" : "Add Tenant"}</h1>
         </div>
       </header>
 
@@ -353,10 +415,12 @@ export default function TenantForm() {
             <Button
               type="submit"
               className="w-full"
-              disabled={createTenantMutation.isPending}
-              data-testid="button-create-tenant"
+              disabled={saveTenantMutation.isPending}
+              data-testid={isEditing ? "button-update-tenant" : "button-create-tenant"}
             >
-              {createTenantMutation.isPending ? "Creating..." : "Create Tenant"}
+              {saveTenantMutation.isPending 
+                ? (isEditing ? "Updating..." : "Creating...") 
+                : (isEditing ? "Update Tenant" : "Create Tenant")}
             </Button>
           </form>
         </Form>

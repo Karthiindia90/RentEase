@@ -20,6 +20,7 @@ import {
   Receipt,
   Edit,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import {
   Accordion,
@@ -193,6 +194,31 @@ export default function TenantDetail() {
     },
   });
 
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      return apiRequest("DELETE", `/api/payments/${paymentId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments/tenant", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/month"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/pending"] });
+      toast({
+        title: "Payment deleted",
+        description: "The payment has been removed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete payment",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (tenantLoading || !tenant) {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
@@ -214,7 +240,15 @@ export default function TenantDetail() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-xl font-semibold">Tenant Details</h1>
+            <h1 className="text-xl font-semibold flex-1">Tenant Details</h1>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setLocation(`/tenants/${id}/edit`)}
+              data-testid="button-edit-tenant"
+            >
+              <Edit className="w-5 h-5" />
+            </Button>
           </div>
         </header>
 
@@ -402,15 +436,24 @@ export default function TenantDetail() {
               ) : (
                 payments.map((payment) => (
                   <div key={payment.id} className="flex justify-between items-center py-2 border-b last:border-0">
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm font-medium">{symbol}{payment.amount}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(payment.paymentDate).toLocaleDateString()} - {payment.paymentMode}
                       </p>
+                      {payment.remarks && (
+                        <p className="text-xs text-muted-foreground">{payment.remarks}</p>
+                      )}
                     </div>
-                    {payment.remarks && (
-                      <p className="text-xs text-muted-foreground">{payment.remarks}</p>
-                    )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => deletePaymentMutation.mutate(payment.id)}
+                      disabled={deletePaymentMutation.isPending}
+                      data-testid={`button-delete-payment-${payment.id}`}
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
                   </div>
                 ))
               )}
