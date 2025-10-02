@@ -100,6 +100,7 @@ export class MemStorage implements IStorage {
       email: insertTenant.email ?? null,
       phoneNumber: insertTenant.phoneNumber ?? null,
       rentalAddress: insertTenant.rentalAddress ?? null,
+      securityDeposit: insertTenant.securityDeposit ?? null,
       password: insertTenant.password ?? null,
       isActive: insertTenant.isActive ?? true,
       planId: insertTenant.planId ?? null,

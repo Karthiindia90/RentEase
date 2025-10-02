@@ -8,7 +8,7 @@ import {
   insertPaymentSchema,
   insertMessageSchema 
 } from "@shared/schema";
-import { addDays, addMonths, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
+import { addDays, addMonths, isAfter, isBefore, startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -340,6 +340,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       total,
       count: monthPayments.length,
       payments: monthPayments,
+    });
+  });
+
+  app.get("/api/reports/week", async (req, res) => {
+    const payments = await storage.getPayments();
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 0 }); // Sunday
+    const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+
+    const weekPayments = payments.filter(p => {
+      const paymentDate = new Date(p.paymentDate);
+      return paymentDate >= weekStart && paymentDate <= weekEnd;
+    });
+
+    const total = weekPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    
+    res.json({
+      total,
+      count: weekPayments.length,
+      payments: weekPayments,
+    });
+  });
+
+  app.get("/api/reports/custom", async (req, res) => {
+    const { startDate, endDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate are required" });
+    }
+
+    const payments = await storage.getPayments();
+    const start = startOfDay(new Date(startDate as string));
+    const end = endOfDay(new Date(endDate as string));
+
+    const customPayments = payments.filter(p => {
+      const paymentDate = new Date(p.paymentDate);
+      return paymentDate >= start && paymentDate <= end;
+    });
+
+    const total = customPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    
+    res.json({
+      total,
+      count: customPayments.length,
+      payments: customPayments,
     });
   });
 

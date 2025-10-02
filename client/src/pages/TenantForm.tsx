@@ -39,7 +39,7 @@ const tenantFormSchema = z.object({
   phoneNumber: z.string().optional(),
   email: z.string().email("Valid email required").or(z.literal("")).optional(),
   rentalAddress: z.string().optional(),
-  securityDeposit: z.string().min(1, "Security deposit is required"),
+  securityDeposit: z.string().optional(),
   planId: z.string().min(1, "Plan is required"),
   billingType: z.enum(["prepaid", "postpaid"]),
   billingCycle: z.string().min(1, "Billing cycle is required"),
@@ -107,6 +107,7 @@ export default function TenantForm() {
         phoneNumber: data.phoneNumber || null,
         email: data.email || null,
         rentalAddress: data.rentalAddress || null,
+        securityDeposit: data.securityDeposit || null,
         electricityRate: data.electricityRate || "0",
         waterRate: data.waterRate || "0",
       };
@@ -159,7 +160,7 @@ export default function TenantForm() {
         phoneNumber: tenant.phoneNumber || "",
         email: tenant.email || "",
         rentalAddress: tenant.rentalAddress || "",
-        securityDeposit: tenant.securityDeposit,
+        securityDeposit: tenant.securityDeposit || "",
         planId: tenant.planId,
         billingType: tenant.billingType as "prepaid" | "postpaid",
         billingCycle: isBillingCycleCustom ? "custom" : tenant.billingCycle,
@@ -262,7 +263,7 @@ export default function TenantForm() {
               name="securityDeposit"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Security Deposit</FormLabel>
+                  <FormLabel>Security Deposit (Optional)</FormLabel>
                   <FormControl>
                     <Input {...field} type="number" step="0.01" data-testid="input-security-deposit" />
                   </FormControl>
