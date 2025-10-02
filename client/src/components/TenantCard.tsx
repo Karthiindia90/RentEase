@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { DollarSign, History } from "lucide-react";
 import PaymentCollectionDialog from "./PaymentCollectionDialog";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface TenantCardProps {
   id: string;
@@ -30,6 +31,7 @@ export default function TenantCard({
   onViewHistory,
 }: TenantCardProps) {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const { symbol } = useCurrency();
 
   const statusConfig = {
     paid: { label: "Paid", color: "bg-success text-white" },
@@ -69,7 +71,7 @@ export default function TenantCard({
               </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <p className="text-lg font-bold" data-testid={`tenant-balance-${id}`}>${balance.toFixed(2)}</p>
+              <p className="text-lg font-bold" data-testid={`tenant-balance-${id}`}>{symbol}{balance.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground">Balance</p>
             </div>
           </div>

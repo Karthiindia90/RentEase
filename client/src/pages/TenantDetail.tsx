@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PaymentCollectionDialog from "@/components/PaymentCollectionDialog";
+import { useCurrency } from "@/hooks/use-currency";
 import {
   ArrowLeft,
   Phone,
@@ -57,6 +58,7 @@ export default function TenantDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const { symbol } = useCurrency();
 
   const { data: tenant, isLoading: tenantLoading } = useQuery<Tenant>({
     queryKey: ["/api/tenants", id],
@@ -122,7 +124,7 @@ export default function TenantDetail() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Balance</p>
-                <p className="text-xl font-bold">${tenant.balance}</p>
+                <p className="text-xl font-bold">{symbol}{tenant.balance}</p>
               </div>
             </div>
           </Card>
@@ -171,7 +173,7 @@ export default function TenantDetail() {
                     {tenant.plan && (
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Rate</span>
-                        <span className="text-sm font-medium">${tenant.plan.rate}/month</span>
+                        <span className="text-sm font-medium">{symbol}{tenant.plan.rate}/month</span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -196,13 +198,13 @@ export default function TenantDetail() {
                       {tenant.electricityRate && (
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Electricity Rate</span>
-                          <span className="text-sm font-medium">${tenant.electricityRate}/unit</span>
+                          <span className="text-sm font-medium">{symbol}{tenant.electricityRate}/unit</span>
                         </div>
                       )}
                       {tenant.waterRate && (
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Water Rate</span>
-                          <span className="text-sm font-medium">${tenant.waterRate}/unit</span>
+                          <span className="text-sm font-medium">{symbol}{tenant.waterRate}/unit</span>
                         </div>
                       )}
                     </div>
@@ -246,7 +248,7 @@ export default function TenantDetail() {
                 payments.map((payment) => (
                   <div key={payment.id} className="flex justify-between items-center py-2 border-b last:border-0">
                     <div>
-                      <p className="text-sm font-medium">${payment.amount}</p>
+                      <p className="text-sm font-medium">{symbol}{payment.amount}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(payment.paymentDate).toLocaleDateString()} - {payment.paymentMode}
                       </p>

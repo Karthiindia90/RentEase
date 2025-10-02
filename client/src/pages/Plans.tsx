@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import PlanCard from "@/components/PlanCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useCurrency } from "@/hooks/use-currency";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ export default function Plans() {
   const [open, setOpen] = useState(false);
   const [planName, setPlanName] = useState("");
   const [planRate, setPlanRate] = useState("");
+  const { symbol } = useCurrency();
 
   const { data: plans = [], isLoading } = useQuery<Plan[]>({
     queryKey: ["/api/plans"],
@@ -82,7 +84,7 @@ export default function Plans() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="plan-rate">Monthly Rate ($)</Label>
+                  <Label htmlFor="plan-rate">Monthly Rate ({symbol})</Label>
                   <Input
                     id="plan-rate"
                     type="number"
@@ -121,6 +123,7 @@ export default function Plans() {
               name={plan.name}
               rate={parseFloat(plan.rate)}
               onEdit={() => console.log(`Edit plan ${plan.id}`)}
+              onDelete={() => deletePlanMutation.mutate(plan.id)}
             />
           ))
         )}

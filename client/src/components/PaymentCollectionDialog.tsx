@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useCurrency } from "@/hooks/use-currency";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ export default function PaymentCollectionDialog({
   currentBalance,
 }: PaymentCollectionDialogProps) {
   const { toast } = useToast();
+  const { symbol } = useCurrency();
   const [amount, setAmount] = useState("");
   const [discount, setDiscount] = useState("");
   const [paymentMode, setPaymentMode] = useState("cash");
@@ -99,11 +101,11 @@ export default function PaymentCollectionDialog({
         <div className="space-y-4">
           <div className="p-3 bg-accent rounded-md">
             <p className="text-sm text-muted-foreground">Current Balance</p>
-            <p className="text-2xl font-bold">${currentBalance.toFixed(2)}</p>
+            <p className="text-2xl font-bold">{symbol}{currentBalance.toFixed(2)}</p>
           </div>
 
           <div>
-            <Label htmlFor="amount">Payment Amount ($)</Label>
+            <Label htmlFor="amount">Payment Amount ({symbol})</Label>
             <Input
               id="amount"
               type="number"
@@ -116,7 +118,7 @@ export default function PaymentCollectionDialog({
           </div>
 
           <div>
-            <Label htmlFor="discount">Discount (Optional) ($)</Label>
+            <Label htmlFor="discount">Discount (Optional) ({symbol})</Label>
             <Input
               id="discount"
               type="number"
@@ -131,7 +133,7 @@ export default function PaymentCollectionDialog({
           <div className="p-3 bg-primary/10 rounded-md">
             <p className="text-sm text-muted-foreground">New Balance</p>
             <p className="text-2xl font-bold text-primary">
-              ${calculatedBalance.toFixed(2)}
+              {symbol}{calculatedBalance.toFixed(2)}
             </p>
           </div>
 
