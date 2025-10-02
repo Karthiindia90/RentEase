@@ -55,7 +55,9 @@ export default function PaymentCollectionDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payments/tenant", tenantId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/today"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/month"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/pending"] });
       toast({
         title: "Payment recorded",
         description: "Payment has been successfully recorded",
