@@ -29,13 +29,12 @@ A comprehensive mobile-first rent management application for property admins to 
 - rate (monthly rent amount)
 
 **Tenants Table**
-- id, name, phoneNumber, email, address, plan
+- id, billingName (required), phoneNumber (optional), email (optional), rentalAddress (optional)
+- securityDeposit, planId
 - billingType: "prepaid" | "postpaid"
-- billingCycle: "end_of_month" | specific day number
-- balance: current outstanding balance
-- electricityRate, waterRate (for utility calculations)
-- documents: array of file paths
-- status: derived from balance and bills
+- billingCycle: "end_of_month" | "1" (1st day) | custom day (1-31)
+- electricityRate, waterCharges (for utility calculations)
+- isActive, remarks, documents: array of file paths
 
 **Bills Table**
 - id, tenantId, amount, dueDate
@@ -160,12 +159,17 @@ A comprehensive mobile-first rent management application for property admins to 
 - Optimistic updates for currency changes
 
 ## Recent Changes (Latest First)
-- **Currency System Enhancement** (Current):
+- **Tenant Form Enhancements** (Current):
+  - Made phone, email, and address optional fields in tenant creation
+  - Fixed plan dropdown to show dynamic currency symbol (not hardcoded $)
+  - Updated billing cycle options: End of Month, 1st Day of Month, Custom Day (1-31)
+  - Added validation for custom billing day when custom option is selected
+- **Currency System Enhancement**:
   - Created centralized `useCurrency()` hook for global currency state
   - Updated all components to dynamically display currency symbols
   - Currency selector now shows currency-specific icons
   - All monetary values react instantly to currency changes
-- **Plan Management** (Current):
+- **Plan Management**:
   - Added delete functionality to Plans page with trash icon
   - AlertDialog confirmation before plan deletion (cancel/confirm options)
   - Proper cache invalidation after deletion
