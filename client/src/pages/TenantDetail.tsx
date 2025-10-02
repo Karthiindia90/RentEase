@@ -34,6 +34,14 @@ interface Plan {
   rate: string;
 }
 
+interface Bill {
+  id: string;
+  amount: string;
+  billDate: string;
+  dueDate: string;
+  status: string;
+}
+
 interface Tenant {
   id: string;
   billingName: string;
@@ -49,6 +57,7 @@ interface Tenant {
   waterRate?: string;
   remarks?: string;
   isActive: boolean;
+  bills?: Bill[];
 }
 
 interface Payment {
@@ -84,6 +93,102 @@ export default function TenantDetail() {
       toast({
         title: "Tenant updated",
         description: "Tenant status has been updated successfully",
+      });
+    },
+  });
+
+  const sendBillMutation = useMutation({
+    mutationFn: async () => {
+      if (!tenant) {
+        throw new Error("Tenant not found");
+      }
+
+      const bills = tenant.bills || [];
+      const latestBill = bills.sort((a, b) => 
+        new Date(b.billDate).getTime() - new Date(a.billDate).getTime()
+      )[0];
+      
+      if (!latestBill) {
+        throw new Error("No bill found for this tenant");
+      }
+
+      return apiRequest("POST", "/api/messages", {
+        tenantId: id,
+        content: "Your bill has been sent",
+        sender: "admin",
+        attachmentType: "bill",
+        attachmentId: latestBill.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/tenant", id] });
+      toast({
+        title: "Bill sent",
+        description: "Bill has been sent to the tenant",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send bill",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendReceiptMutation = useMutation({
+    mutationFn: async () => {
+      if (!payments || payments.length === 0) {
+        throw new Error("No payments found for this tenant");
+      }
+
+      const latestPayment = [...payments].sort((a, b) => 
+        new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+      )[0];
+
+      return apiRequest("POST", "/api/messages", {
+        tenantId: id,
+        content: "Your payment receipt has been sent",
+        sender: "admin",
+        attachmentType: "receipt",
+        attachmentId: latestPayment.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/tenant", id] });
+      toast({
+        title: "Receipt sent",
+        description: "Receipt has been sent to the tenant",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send receipt",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const renewTenantMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/bills/generate", { tenantId: id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants"] });
+      toast({
+        title: "Tenant renewed",
+        description: "A new bill has been generated for this tenant",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to renew tenant",
+        variant: "destructive",
       });
     },
   });
@@ -177,19 +282,33 @@ export default function TenantDetail() {
                 <DollarSign className="w-4 h-4 mr-2" />
                 Collect Payment
               </Button>
-              <Button variant="secondary" className="w-full" data-testid="button-send-bill">
+              <Button 
+                variant="secondary" 
+                className="w-full" 
+                data-testid="button-send-bill"
+                onClick={() => sendBillMutation.mutate()}
+                disabled={sendBillMutation.isPending}
+              >
                 <Send className="w-4 h-4 mr-2" />
                 Send Bill
               </Button>
-              <Button variant="secondary" className="w-full" data-testid="button-send-receipt">
+              <Button 
+                variant="secondary" 
+                className="w-full" 
+                data-testid="button-send-receipt"
+                onClick={() => sendReceiptMutation.mutate()}
+                disabled={sendReceiptMutation.isPending}
+              >
                 <Receipt className="w-4 h-4 mr-2" />
                 Send Receipt
               </Button>
-              <Button variant="secondary" className="w-full" data-testid="button-change-balance">
-                <Edit className="w-4 h-4 mr-2" />
-                Change Balance
-              </Button>
-              <Button variant="secondary" className="w-full col-span-2" data-testid="button-renew">
+              <Button 
+                variant="secondary" 
+                className="w-full col-span-2" 
+                data-testid="button-renew"
+                onClick={() => renewTenantMutation.mutate()}
+                disabled={renewTenantMutation.isPending}
+              >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Renew Tenant
               </Button>
