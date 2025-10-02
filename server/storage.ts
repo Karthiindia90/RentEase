@@ -34,6 +34,7 @@ export interface IStorage {
   getPayments(): Promise<Payment[]>;
   getPayment(id: string): Promise<Payment | undefined>;
   getPaymentsByTenant(tenantId: string): Promise<Payment[]>;
+  deletePayment(id: string): Promise<boolean>;
 
   // Messages
   createMessage(message: InsertMessage): Promise<Message>;
@@ -96,6 +97,9 @@ export class MemStorage implements IStorage {
       ...insertTenant, 
       id, 
       createdAt: new Date(),
+      email: insertTenant.email ?? null,
+      phoneNumber: insertTenant.phoneNumber ?? null,
+      rentalAddress: insertTenant.rentalAddress ?? null,
       password: insertTenant.password ?? null,
       isActive: insertTenant.isActive ?? true,
       planId: insertTenant.planId ?? null,
@@ -189,6 +193,10 @@ export class MemStorage implements IStorage {
 
   async getPaymentsByTenant(tenantId: string): Promise<Payment[]> {
     return Array.from(this.payments.values()).filter(payment => payment.tenantId === tenantId);
+  }
+
+  async deletePayment(id: string): Promise<boolean> {
+    return this.payments.delete(id);
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {

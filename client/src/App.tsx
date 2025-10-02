@@ -19,6 +19,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/tenants" component={TenantList} />
       <Route path="/tenants/new" component={TenantForm} />
+      <Route path="/tenants/:id/edit" component={TenantForm} />
       <Route path="/tenants/:id" component={TenantDetail} />
       <Route path="/plans" component={Plans} />
       <Route path="/reports" component={Reports} />

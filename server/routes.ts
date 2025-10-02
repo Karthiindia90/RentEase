@@ -273,6 +273,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(payments);
   });
 
+  app.delete("/api/payments/:id", async (req, res) => {
+    const deleted = await storage.deletePayment(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+    res.json({ success: true });
+  });
+
   // Message routes
   app.get("/api/messages", async (req, res) => {
     const messages = await storage.getMessages();
